@@ -9,16 +9,15 @@ from typing import Tuple
 
 
 class PythoncomImportError(ImportError):
-    """
-    This is used to deal with no pythoncom module found
-    """
+    """Raised when pywin32 / COM support cannot be used."""
+
     def __init__(self):
-        msg  = "Must import the pywin32 module.  Use:  \n"
-        msg += "\tconda install -c conda-forge pywin32\n"
-        msg += "   or\n"
-        msg += "\tpip install pywin32"
+        msg = "Cannot use pywin32 COM support.\n"
+        msg += "Please check that pywin32 is installed and importable:\n"
+        msg += "\tpython -c \"import win32com.client; import pythoncom; import pywintypes\"\n"
+        msg += "Install with:\n"
+        msg += "\tpython -m pip install pywin32\n"
         super().__init__(msg)
-        exit(msg)
 
 
 class MultiPyVuError(Exception):
