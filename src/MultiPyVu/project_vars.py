@@ -20,16 +20,15 @@ if platform == 'win32':
     except ImportError:
         raise PythoncomImportError
 
-    # Get the version number for pywin32
-    pth = sysconfig.get_path('platlib')
-    pth = os.path.join(pth, "pywin32.version.txt")
-    if os.path.exists(pth):
-        with open(pth) as ver_file_obj:
-            version = ver_file_obj.read().strip()
-    else:
-        raise PythoncomImportError
-    # the version number is usually an int, but sometimes
-    # it is a fraction, so convert to a float
+    # Get the version number for pywin32 from package metadata.
+    try:
+        from importlib.metadata import version as _dist_version
+        version = _dist_version("pywin32")
+    except Exception as exc:
+        raise PythoncomImportError from exc
+
+    # The version number is usually an int, but sometimes it is a fraction,
+    # so convert to a float.
     py_win_version = float(version)
 PYWIN32_VERSION = py_win_version
 
