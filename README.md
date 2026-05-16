@@ -1,27 +1,31 @@
+# Disclaimer
+
+This repository is a mirror of the upstream MultiPyVu project. It is not the official upstream repository maintained by Quantum Design.
+
+This mirror contains local modifications intended to support Python installations outside Conda, including Microsoft Store Python and other user-site or pip-based environments. In particular, these changes improve compatibility with environments where pywin32 is installed and importable but the original Conda-oriented version detection files are not present in the expected location.
+
+For the official package and documentation, refer to the upstream MultiPyVu project and Quantum Design resources.
+
+---
+
 ![qd_logo](https://qdusa.com/images/QD_logo.png)
 # MultiPyVu
 
-* [Introduction](#intro)
-* [Requirements](#requirements)
-* [Example Scripts](#examples)
-* [Getting Started](#getting-started)
-* [Using Using MultiPyVu.Server() and MultiPyVu.Client()](#using)
-* [Starting the Server Using the GUI](#gui)
-* [Commands](#commands)
-    * [set_temperature() / get_temperature()](#temp)
-    * [set_field() / get_field()](#field)
-    * [set_chamber() / get_chamber()](#chamber)
-    * [wait_for()](#waitfor)
-    * [is_steady()](#is_steady)
-    * [get_aux_temperature()](#aux_therm)
-    * [resistivity option](#brt)
-    * [horizontal rotator option](#rotator)
-* [Saving & Opening a MultiVu Data File](#save)
-* [Querying the Server Status](#server_status)
-* [Testing the Server Using Scaffolding](#scaffolding)
-* [Troubleshooting](#troubleshooting)
-* [Changelog](#changelog)
-* [Contact](#Contact)
+- [Disclaimer](#disclaimer)
+- [MultiPyVu](#multipyvu)
+    - [Introduction](#introduction)
+    - [Module Requirements](#module-requirements)
+    - [Included Example Scripts](#included-example-scripts)
+    - [Getting Started](#getting-started)
+    - [Using MultiPyVu.Server() and MultiPyVu.Client()](#using-multipyvuserver-and-multipyvuclient)
+    - [Starting the Server Using the GUI](#starting-the-server-using-the-gui)
+    - [Commands](#commands)
+    - [Saving \& Opening a MultiVu Data File](#saving-opening-a-multivu-data-file)
+    - [Querying the Server Status](#querying-the-server-status)
+    - [Testing the Server Using Scaffolding](#testing-the-server-using-scaffolding)
+    - [Troubleshooting](#troubleshooting)
+  - [Changelog](#changelog)
+  - [Contact](#contact)
 ***
 ---
 ### Introduction<a class="anchor" id="intro"></a>

@@ -1,0 +1,14 @@
+2026-05-15 20:22:24.530       MultiVuServer        INFO     dynacool MultiVu specified by user.
+2026-05-15 20:22:28.684       MultiVuServer        INFO     Press ESC to exit.
+2026-05-15 20:22:28.688       MultiVuServer        INFO     Listening on port 5000
+2026-05-15 20:22:39.786       MultiVuServer        DEBUG    	Listening = 1	Read/Write = 0	Other = 0
+2026-05-15 20:22:39.786       MultiVuServer        DEBUG    Closing socket 2036 of type "listening"
+2026-05-15 20:22:39.786       MultiVuServer        DEBUG    Server status updated to: idle
+2026-05-15 20:22:56.642       MultiVuServer        DEBUG    DYNACOOL detected here:  C:\QdDynacool\MultiVu\Dynacool.exe
+2026-05-15 20:22:56.643       MultiVuServer        INFO     Found DYNACOOL running.
+2026-05-15 20:22:56.643       MultiVuServer        DEBUG    MultiPyVu Version: 3.6.1
+2026-05-15 20:23:05.078       MultiVuServer        INFO     Press ESC to exit.
+2026-05-15 20:23:05.079       MultiVuServer        INFO     Listening on port 5000
+2026-05-15 20:23:21.219       MultiVuServer        DEBUG    	Listening = 1	Read/Write = 0	Other = 0
+2026-05-15 20:23:21.219       MultiVuServer        DEBUG    Closing socket 2020 of type "listening"
+2026-05-15 20:23:21.219       MultiVuServer        DEBUG    Server status updated to: idle
