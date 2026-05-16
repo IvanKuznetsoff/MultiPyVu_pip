@@ -5,12 +5,12 @@ https://packaging.python.org/guides/distributing-packages-using-setuptools/
 https://github.com/pypa/sampleproject
 """
 
-# Always prefer setuptools over distutils
-from setuptools import setup, find_packages
-import pathlib
 import codecs
 import os.path
+import pathlib
 
+# Always prefer setuptools over distutils
+from setuptools import find_packages, setup
 
 here = pathlib.Path(__file__).parent.resolve()
 
@@ -46,15 +46,16 @@ setup(
             "images/*.jpg",
             "images/*.png",
             "font/*.ttf",
-            "scripts/*.cmd",
-            "MultiVuDataFile/*.py"
+            "scripts/*",
+            "MultiVuDataFile/*.py",
+            "logging_config.yaml"
             ]
         },
-    python_requires=">=3.8",
-    dependencies=[
-        "typing",
+    python_requires=">=3.7",
+    install_requires=[
         "pandas",
-        "pywin32>=300",
+        "pywin32>=300; platform_system=='Windows'",
         "pillow",
+        "pyyaml"
     ],
 )

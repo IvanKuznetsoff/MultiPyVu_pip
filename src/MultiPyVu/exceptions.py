@@ -1,19 +1,19 @@
-'''
+"""
 Custom exceptions for MultiPyVu
-'''
+"""
 
 
-from sys import exit, platform
 from enum import IntEnum
+from sys import exit, platform
 from typing import Tuple
 
 
 class PythoncomImportError(ImportError):
-    '''
+    """
     This is used to deal with no pythoncom module found
-    '''
+    """
     def __init__(self):
-        msg  = "Must import the pywin32 module. Use:  \n"
+        msg  = "Must import the pywin32 module.  Use:  \n"
         msg += "\tconda install -c conda-forge pywin32\n"
         msg += "   or\n"
         msg += "\tpip install pywin32"
@@ -21,21 +21,14 @@ class PythoncomImportError(ImportError):
         exit(msg)
 
 
-if platform == 'win32':
-    try:
-        from pywintypes import com_error as pywin_com_error
-    except ImportError:
-        raise PythoncomImportError
-
-
 class MultiPyVuError(Exception):
-    '''
+    """
     MultiVu Exception Error
-    '''
+    """
     # Constructor or Initializer
     def __init__(self, message: str):
         mpvex_str = 'MultiPyVuError: '
-        if message.startswith(mpvex_str):
+        if isinstance(message, str) and message.startswith(mpvex_str):
             # the error adds mpvex_str automatically to
             # the front of the text, so remove it
             message = message.replace(mpvex_str, '')
@@ -44,31 +37,31 @@ class MultiPyVuError(Exception):
 
 
 class ClientCloseError(ConnectionError):
-    '''
+    """
     Close the client connection
-    '''
+    """
     def __init__(self, message: str):
         super().__init__(message)
 
 
 class SocketError(OSError):
-    '''
+    """
     No socket connection
-    '''
+    """
     def __init__(self, message: str):
         super().__init__(message)
 
 
 class ServerCloseError(ConnectionAbortedError):
-    '''
+    """
     Close the server connection
-    '''
+    """
     def __init__(self, message: str):
         super().__init__(message)
 
 
 class PwinComError(Exception):
-    '''Display the pywintypes.com_error'''
+    """Display the pywintypes.com_error"""
     def __init__(self, err: Exception):
         param = ''
         # A pywin_com_error.args is a tuple with 4 terms.
@@ -140,10 +133,10 @@ class can_err_enum(IntEnum):
 
 
 def can_error_msg(can_err: int) -> str:
-    '''
+    """
     Returns a description of the can error which is returned
     from either self._mvu.ReadSDO() or self._mvu.WriteSDO()
-    '''
+    """
     if can_err == can_err_enum.R_SDO_TIMEOUT:
         return "SDO timeout"
     elif can_err == can_err_enum.R_EMPTY:
@@ -258,7 +251,7 @@ class abort_err_enum(IntEnum):
 
 
 def abort_error_msg(err: int) -> Tuple[str, bool]:
-    '''
+    """
     Converts the error_variant.value into string in words
     describing the error.  It also lets us know if it
     is worth the effort to retry calling the SDO.
@@ -274,7 +267,7 @@ def abort_error_msg(err: int) -> Tuple[str, bool]:
     Returns:
     --------
     Tuple with the code in words and bool for retry
-    '''
+    """
     if err == abort_err_enum.WRONG_TOGGLEBIT:
         return ("unspecified error occurred", True)
     elif err == abort_err_enum.SDO_PROTOCOL_TIMEOUT:
@@ -354,11 +347,22 @@ def abort_error_msg(err: int) -> Tuple[str, bool]:
         return ("Unknown error", False)
 
 
+if platform == 'win32':
+    try:
+        from pywintypes import com_error as pywin_com_error
+    except ImportError:
+        raise PythoncomImportError
+else:
+    # defining this ensures that an object has this name,
+    # but it should really only be used on win32 systems
+    pywin_com_error = PwinComError
+
+
 class CanError(Exception):
     def __init__(self, can_err: int, sdo_err: int):
         err_msg = can_error_msg(can_err)
         if can_err == can_err_enum.R_ABORT:
             err_msg, _ = abort_error_msg(sdo_err)
         if can_err != can_err_enum.R_OK:
-            err_msg = 'Error: ' + err_msg
+            err_msg = 'CAN Error: ' + err_msg
         super().__init__(err_msg)

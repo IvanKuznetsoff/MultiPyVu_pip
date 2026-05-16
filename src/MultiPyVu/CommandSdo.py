@@ -4,29 +4,23 @@ CommandSdo.py is used to read and write SDOs
 @author: djackson
 """
 
-from sys import platform
-import struct
-import re
 import logging
+import re
+import struct
 from abc import abstractmethod
-from typing import Union, Tuple, Dict
+from sys import platform
+from typing import Dict, Tuple, Union
 
-from .exceptions import (MultiPyVuError,
-                         PwinComError,
-                         CanError,
-                         can_err_enum,
-                         abort_err_enum,
-                         )
+from .exceptions import (CanError, MultiPyVuError, PwinComError,
+                         PythoncomImportError, abort_err_enum, can_err_enum)
 from .ICommand import ICommand
+from .project_vars import CLIENT_NAME, SERVER_NAME
 from .sdo_object import SdoObject, val_type
-from .project_vars import SERVER_NAME, CLIENT_NAME
-from .exceptions import PythoncomImportError
-
 
 if platform == 'win32':
     try:
-        import win32com.client as win32
         import pythoncom
+        import win32com.client as win32
         from pywintypes import com_error as pywin_com_error
     except ImportError:
         raise PythoncomImportError
@@ -51,48 +45,52 @@ class CommandSdoBase(ICommand):
         self.logger_client = logging.getLogger(CLIENT_NAME)
 
     def _is_int(self, v_type: val_type) -> bool:
-        type_is_int = (v_type is val_type.short_t) \
-            or (v_type is val_type.ushort_t) \
-            or (v_type is val_type.int_t) \
-            or (v_type is val_type.uint_t) \
-            or (v_type is val_type.long_t) \
-            or (v_type is val_type.ulong_t)
-        return type_is_int
+        int_types = [
+            val_type.short_t,
+            val_type.ushort_t,
+            val_type.int_t,
+            val_type.uint_t,
+            val_type.long_t,
+            val_type.ulong_t,
+            ]
+        return v_type in int_types
 
     def _is_float(self, v_type: val_type) -> bool:
-        type_is_float = (v_type is val_type.double_t) \
-            or (v_type is val_type.single_t)
-        return type_is_float
+        float_types = [
+            val_type.double_t,
+            val_type.single_t
+            ]
+        return v_type in float_types
 
     def _is_str(self, v_type: val_type) -> bool:
         type_is_str = v_type is val_type.string_t
         return type_is_str
 
     def _errors_to_str(self, can_err: int, abort_err: int) -> str:
-        '''
+        """
         convert the can_err and abort_err numbers into a string
         of the format (can_err;abort_err)
-        '''
+        """
         return f'({can_err};{abort_err})'
 
     def _str_to_errors(self, err_str: str) -> Tuple[int, int]:
-        '''
+        """
         convert a string of can_err and abort_err to numbers
-        '''
+        """
         try:
             search_str = r'\(([\-0-9]*);([0-9]*)\)'
             [search_rslt] = re.findall(search_str, err_str)
             can_err_as_str, abort_err_as_str = search_rslt
             can_err_as_int = int(can_err_as_str)
             abort_err_as_int = int(abort_err_as_str)
-        except BaseException:
+        except BaseException as e:
             msg = 'String can not be converted into two numbers'
-            raise ValueError(f'{msg}:  {err_str}')
+            raise ValueError(f'{msg}:  {err_str}') from e
         return can_err_as_int, abort_err_as_int
 
     def convert_result(self, response: Dict) -> Tuple:
-        '''
-        Converts the CommandMultiVu response from get_state()
+        """
+        Converts the CommandMultiVu response from get_state_server()
         to something usable for the user.
 
         Parameters:
@@ -103,7 +101,7 @@ class CommandSdoBase(ICommand):
         Returns:
         --------
         Value and error status returned from read/write
-        '''
+        """
         r = response['result'].split(',')
         if len(r) == 3:
             val, _, status = r
@@ -124,14 +122,14 @@ class CommandSdoBase(ICommand):
     def prepare_query(self,
                       val: Union[str, int, float],
                       sdo: SdoObject) -> str:
-        '''
+        """
         Returns a string with the format:
         sdo_object,val
-        '''
+        """
         return f'{sdo},{val}'
 
-    def convert_state_dictionary(self, statusNumber: str) -> str:
-        '''
+    def convert_state_dictionary(self, status_number: str) -> str:
+        """
         Takes a string with the can error and abort error in the form
         of (can_error;abort_error) and returns a human readable
         description of the error.
@@ -145,8 +143,8 @@ class CommandSdoBase(ICommand):
         Returns:
         -------
         A string of the error in words.
-        '''
-        can_err_as_int, abort_err_as_int = self._str_to_errors(statusNumber)
+        """
+        can_err_as_int, abort_err_as_int = self._str_to_errors(status_number)
         return str(CanError(can_err_as_int, abort_err_as_int))
 
     def state_code_dict(self):
@@ -157,8 +155,8 @@ class CommandSdoBase(ICommand):
 
     @abstractmethod
     def get_state_server(self,
-                         statusCode: str,
-                         stateValue: str,
+                         value_variant,
+                         state_variant,
                          params: str = ''):
         raise NotImplementedError
 
@@ -175,29 +173,32 @@ class CommandSdoBase(ICommand):
 
 
 class CommandSdoImp(CommandSdoBase):
-    '''
+    """
     This class is used to read and write SDOs
-    '''
+    """
     def __init__(self, multivu_win32com):
-        '''
+        """
         Parameters:
         -----------
         multivu_win32com: Union[win32.dynamic.CDispatch, None]
-        '''
+        """
         super().__init__()
         self._mvu = multivu_win32com
 
-    def _binary_to_value(self, sdo, len, val) -> Union[str, int, float]:
-        '''
+    def _binary_to_value(self,
+                         sdo: SdoObject,
+                         length,
+                         val) -> Union[str, int, float]:
+        """
         Convert a binary value from reading an SDO into its correct
         type.
 
         Parameters:
         -----------
         sdo: SdoObject
-        len: win32com.client.VARIANT
+        length: win32com.client.VARIANT
             This is the parameter used in ReadSDO which
-            holds the length of the value being read.
+            holds the length of the value that was read.
         val: win32com.client.VARIANT
             This is the parameter used in ReadSDO which
             holds the value being read.
@@ -206,34 +207,37 @@ class CommandSdoImp(CommandSdoBase):
         --------
         The value being returned from ReadSDO in its native
         python format of string, int, or float.
-        '''
+        """
         if sdo.val_type is val_type.string_t:
-            var_memory = val.value[0:len.value - 1]
+            var_memory = val.value[0:length.value - 1]
             return_val = bytes(var_memory).decode('utf-8')
-        elif sdo.val_type is val_type.short_t or \
-                sdo.val_type is val_type.int_t or \
-                sdo.val_type is val_type.long_t:
-            b = list(bytes(val.value)[0:len.value])
+        elif sdo.val_type in (val_type.short_t,
+                              val_type.int_t,
+                              val_type.long_t):
+            b = list(bytes(val.value)[0:length.value])
             return_val = int.from_bytes(b,
                                         byteorder='little',
                                         signed=True)
-        elif sdo.val_type is val_type.ushort_t or \
-                sdo.val_type is val_type.uint_t or \
-                sdo.val_type is val_type.ulong_t:
-            b = list(bytes(val.value)[0:len.value])
+        elif sdo.val_type in (val_type.ushort_t,
+                              val_type.uint_t,
+                              val_type.ulong_t):
+            b = list(bytes(val.value)[0:length.value])
             return_val = int.from_bytes(b,
                                         byteorder='little',
                                         signed=False)
-        else:
-            b = bytes(val.value)[0:len.value]
+        elif sdo.val_type in (val_type.single_t,
+                              val_type.double_t):
+            b = bytes(val.value)[0:length.value]
             # format = '<f' means little endian ('>f' is big endian)
             [return_val] = struct.unpack('<f', b)
+        else:
+            raise ValueError('unsupported variant type')
         return return_val
 
     def _value_to_binary(self,
                          sdo: SdoObject,
-                         val: Union[str, int, float]) -> Tuple[int, bytes]:
-        '''
+                         val: Union[str, int, float]) -> bytes:
+        """
         Convert a value being sent to WriteSDO into binary.
 
         Parameters:
@@ -245,44 +249,27 @@ class CommandSdoImp(CommandSdoBase):
 
         Returns:
         --------
-        A tuple with the first item being the length of the SDO,
-        and the second item the value being set in binary.
-        '''
-        len = 1
+        The value being set in binary.
+        """
+        sdo_length = sdo.object_length()
         sdo_val = b''
-        if sdo.val_type is val_type.short_t or \
-                sdo.val_type is val_type.ushort_t:
-            len = 1
-            sdo_val = int.to_bytes(int(val), len,
-                                   byteorder='little',
-                                   signed=False)
-        elif sdo.val_type is val_type.int_t or \
-                sdo.val_type is val_type.uint_t:
-            len = 2
-            sdo_val = int.to_bytes(int(val), len,
-                                   byteorder='little',
-                                   signed=False)
-        elif sdo.val_type is val_type.long_t or \
-                sdo.val_type is val_type.ulong_t:
-            len = 4
-            sdo_val = int.to_bytes(int(val), len,
-                                   byteorder='little',
-                                   signed=False)
-        elif sdo.val_type is val_type.single_t:
-            len = 2
-            sdo_val = struct.pack('<f', float(val))
-        elif sdo.val_type is val_type.double_t:
-            len = 4
+        if sdo.val_type in (val_type.short_t, val_type.ushort_t):
+            sdo_val = int(val).to_bytes(sdo_length, 'little', signed=False)
+        elif sdo.val_type in (val_type.int_t, val_type.uint_t):
+            sdo_val = int(val).to_bytes(sdo_length, 'little', signed=False)
+        elif sdo.val_type in (val_type.long_t, val_type.ulong_t):
+            sdo_val = int(val).to_bytes(sdo_length, 'little', signed=False)
+        elif sdo.val_type in (val_type.single_t, val_type.double_t):
             sdo_val = struct.pack('<f', float(val))
         elif sdo.val_type is val_type.string_t:
             sdo_val = val.encode()
         else:
             msg = 'Unsupported val_type: ' + str(sdo)
             raise ValueError(msg)
-        return len, sdo_val
+        return sdo_val
 
     def read_sdo(self, sdo: SdoObject,) -> Tuple:
-        '''
+        """
         Configures and reads an SDO value.
 
         Parameters:
@@ -295,8 +282,8 @@ class CommandSdoImp(CommandSdoBase):
         the SDO, and the second value is a string that looks like
         a tuple whose first term is the CAN error and the second
         term is the abort error.
-        '''
-        sdo_len = win32.VARIANT(
+        """
+        length_variant = win32.VARIANT(
                             pythoncom.VT_BYREF | pythoncom.VT_I4,
                             0)
         value_variant = win32.VARIANT(
@@ -311,7 +298,7 @@ class CommandSdoImp(CommandSdoBase):
             can_error = self._mvu.ReadSDO(sdo.node,
                                           sdo.index,
                                           sdo.sub,
-                                          sdo_len,
+                                          length_variant,
                                           value_variant,
                                           error_variant)
             self.return_state = self._errors_to_str(can_error,
@@ -327,14 +314,16 @@ class CommandSdoImp(CommandSdoBase):
             msg += f'while reading ({str(sdo)})'
             raise MultiPyVuError(msg)
         else:
-            return_val = self._binary_to_value(sdo, sdo_len, value_variant)
+            return_val = self._binary_to_value(sdo,
+                                               length_variant,
+                                               value_variant)
 
         return return_val, self.return_state
 
     def write_sdo(self,
                   sdo: SdoObject,
-                  val: Union[str, int, float]) -> Union[str, int]:
-        '''
+                  val: Union[str, int, float]) -> str:
+        """
         This configures the parameters and then calls WriteSDO.
 
         Parameters:
@@ -346,18 +335,13 @@ class CommandSdoImp(CommandSdoBase):
 
         Returns:
         --------
-        A tuple with the first term the value that was read from
-        the SDO, and the second value is a string that looks like
-        a tuple whose first term is the CAN error and the second
-        term is the abort error.
-        '''
-        len, sdo_val = self._value_to_binary(sdo, val)
-        sdo_len = win32.VARIANT(
-                            pythoncom.VT_BYREF | pythoncom.VT_I4,
-                            len)
+        string with the error from MultiVu
+        """
+        binary_val = self._value_to_binary(sdo, val)
+        data_length = sdo.object_length()
         value_variant = win32.VARIANT(
                             pythoncom.VT_BYREF | pythoncom.VT_VARIANT,
-                            sdo_val)
+                            binary_val)
         error_variant = win32.VARIANT(
                             pythoncom.VT_BYREF | pythoncom.VT_I4,
                             0)
@@ -366,7 +350,7 @@ class CommandSdoImp(CommandSdoBase):
             can_error = self._mvu.WriteSDO(sdo.node,
                                            sdo.index,
                                            sdo.sub,
-                                           sdo_len,
+                                           data_length,
                                            value_variant,
                                            error_variant)
             self.return_state = self._errors_to_str(can_error,
@@ -382,14 +366,20 @@ class CommandSdoImp(CommandSdoBase):
             self.logger_client.debug(msg)
         return self.return_state
 
-    def get_state_server(self, value_variant, state_variant, params) -> Tuple:
-        '''
+    def get_state_server(self,
+                         value_variant,
+                         state_variant,
+                         params: str) -> Tuple:
+        """
         Returns a tuple of the SDO query result and the can_error number.
+
+        Note that the first two input parameters are unused, but included
+        because the other CommandXXX classes use them.
 
         Parameters:
         -----------
-        value_variant: win32com.client (not used)
-        state_variant: win32com.client (not used)
+        value_variant: (not used)
+        state_variant: (not used)
         params: str
             The string representation of an sdo_object
 
@@ -398,16 +388,16 @@ class CommandSdoImp(CommandSdoBase):
         A tuple with the first term the value that was read from
         the SDO, and the second value is the CAN error returned
         from the ReadSDO command.
-        '''
+        """
         sdo_input = SdoObject.str_to_obj(params)
         sdo_tuple = self.read_sdo(sdo_input)
         return sdo_tuple
 
     def set_state_server(self, arg_string: str) -> str:
-        '''
+        """
         Expects a string with the format:
         sdo_object, val
-        '''
+        """
         sdo_str, val = arg_string.split(',')
         sdo = SdoObject.str_to_obj(sdo_str)
 
@@ -423,9 +413,9 @@ class CommandSdoImp(CommandSdoBase):
 
 
 class CommandSdoSim(CommandSdoBase):
-    '''
+    """
     This class is used to read and write SDOs
-    '''
+    """
     def __init__(self):
         super().__init__()
 
@@ -434,13 +424,16 @@ class CommandSdoSim(CommandSdoBase):
         CommandSdoSim._str_val = 'simulated response'
 
     def get_state_server(self, value_variant, state_variant, params) -> Tuple:
-        '''
+        """
         Returns a tuple of the SDO query result and the can_error number.
+
+        Note that the first two input parameters are unused, but included
+        because the other CommandXXX classes use them.
 
         Parameters:
         -----------
-        value_variant: win32com.client (not used)
-        state_variant: win32com.client (not used)
+        value_variant: (not used)
+        state_variant: (not used)
         params: str
             The string representation of an SdoObject
 
@@ -449,7 +442,7 @@ class CommandSdoSim(CommandSdoBase):
         A tuple with the first term the value that was read from
         the SDO, and the second value is the CAN error returned
         from the ReadSDO command.
-        '''
+        """
         sdo_input = SdoObject.str_to_obj(params)
         status = self._errors_to_str(can_err_enum.R_OK,
                                      abort_err_enum.NORMAL_CONF)
@@ -466,17 +459,15 @@ class CommandSdoSim(CommandSdoBase):
         sdo_tuple = val, status
         return sdo_tuple
 
-    def set_state_server(self, arg_string: str):
-        '''
+    def set_state_server(self, arg_string: str) -> str:
+        """
         Expects a string with the format:
         SdoObject, val
 
         Returns:
         --------
-        A tuple with the first term the value that was read from
-        the SDO, and the second value is the CAN error returned
-        from the ReadSDO command.
-        '''
+        string with the error from MultiVu
+        """
         sdo_str, val = arg_string.split(',')
         sdo = SdoObject.str_to_obj(sdo_str)
 

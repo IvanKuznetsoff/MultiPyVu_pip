@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-'''
+"""
 This script is used to generate sdo_objects from reading a
 cop file.
 
@@ -8,11 +8,11 @@ as an argument when calling the script, or the script will
 ask for the path to a file.  The python file will be saved
 in the same location as the cop file and will have the same
 name with the .py ending.
-'''
+"""
 
-from sys import argv, exit
 import os.path
 import re
+from sys import argv, exit
 
 from MultiPyVu.CommandSdo import SdoObject, val_type
 
@@ -107,7 +107,7 @@ while exists:
 
 # write the file
 with open(sdo_file, 'w') as s_file:
-    s_file.write(f"'''\nSDO Dictionary generated using {cop_file}\n\n'''")
+    s_file.write(f""""\nSDO Dictionary generated using {cop_file}\n\n"""")
     s_file.write('\nfrom MultiPyVu.sdo_object import SdoObject, val_type\n\n\n')
     for n, s in sdo_dict.items():
         if s is None:

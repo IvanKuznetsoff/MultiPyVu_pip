@@ -31,20 +31,31 @@ class val_type(IntFlag):
 
 
 class SdoObject():
-    '''
+    """
     This class is used to hold sdo information.  Note that
     it can be represented as a string using str(sdo_object).
     The string can be converted into an sdo_object by calling
     .str_to_obj(string), which is a static method and returns
     an sdo_object.
-    '''
+
+    Parameters:
+    -----------
+    nodID: int
+        The node number
+    sdo_index: int
+        This should be represented in hex.  For example, 0x1008.
+    sub_index: int
+        This should be represented in hex.  For example, 0x0.
+    val_t: val_type
+        Specify the type.
+    """
     def __init__(self,
                  nodeID: int,
                  sdo_index: int,
                  sub_index: int,
                  val_t: val_type):
         if (nodeID > 63) or (nodeID < 0):
-            msg = f'Invalid nodeNum: {nodeID}'
+            msg = f'Invalid nodeID: {nodeID}'
             raise ValueError(msg)
         if (sdo_index > 0xFFFF) or (sdo_index < 0):
             msg = f'Invalid SDO index: {sdo_index}'
@@ -66,7 +77,7 @@ class SdoObject():
 
     @staticmethod
     def str_to_obj(sdo_as_string: str):
-        '''
+        """
         Static method used to convert a string representation of
         an sdo_object into an sdo_object.
 
@@ -83,7 +94,7 @@ class SdoObject():
         Raises:
         -------
         ValueError if the string is not formatted correctly
-        '''
+        """
         sdo_search = r'node: ([0-9]{1,2})  '
         sdo_search += r'index: (0x[0-9abcdefABCDEF]{1,4})  '
         sdo_search += r'sub_index: (0x[0-9abcdefABCDEF]{1,4})  '
@@ -99,3 +110,28 @@ class SdoObject():
         s = int(sub_index, 16)
         v_t = val_type[t]
         return SdoObject(n, i, s, v_t)
+
+    def object_length(self) -> int:
+        """
+        Get the byte size
+        """
+        if self.val_type is val_type.short_t:
+            return 1
+        elif self.val_type is val_type.int_t:
+            return 2
+        elif self.val_type is val_type.single_t:
+            return 2
+        elif self.val_type is val_type.string_t:
+            return 1
+        elif self.val_type is val_type.ushort_t:
+            return 1
+        elif self.val_type is val_type.uint_t:
+            return 2
+        elif self.val_type is val_type.double_t:
+            return 4
+        elif self.val_type is val_type.long_t:
+            return 4
+        elif self.val_type is val_type.ulong_t:
+            return 4
+        else:
+            raise ValueError('Unimplemented SDO type')

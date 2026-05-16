@@ -15,10 +15,9 @@ maintainers = [
     { name = "Quantum Design, Inc.", email = "apps@qdusa.com" },
     ]
 readme = "README.md"
-license = {file = "LICENSE"}
+license = "MIT"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Physics",
